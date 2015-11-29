@@ -4,7 +4,7 @@ Bash script to create mosaics of video clips, based on ffmpeg.
 Main requirements:
 ------------------
 
-* mediainfo
+* ~~mediainfo~~ (not anymore, removed all references)
 * ffmpeg compiled with the flags --enable-libvpx --enable-libx264
 
 Basic usage:
