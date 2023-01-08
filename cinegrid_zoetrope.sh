@@ -6,8 +6,14 @@ declare -i tiles=$2**2
 filename=$(basename "$input")
 extension="${filename##*.}"
 
+if test -z "$3" 
+then
+      resolution=200
+else
+      resolution=$3
+fi
+
 #get video duration in seconds/minutes/hours
-#~ declare -i duration
 duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$input")
 duration_formatted=$(ffprobe -v error -show_entries format=duration -sexagesimal -of default=noprint_wrappers=1:nokey=1 "$input")
 duration=${duration%.*}
@@ -23,19 +29,16 @@ echo "Duration of each segment: ${segments}s approx."
 
 echo "Splitting video into tile pieces..."
 
-ffmpeg -i "$input" -acodec copy -f segment -segment_time $segments -vf "scale=190:trunc(ow/a/2)*2",copy -reset_timestamps 1 -an -sn -c:v libx264 buffer%d.$extension
-#~ ffmpeg -i "$input" -acodec copy -f segment -segment_time $segments -vf "scale=190:-1",copy -reset_timestamps 1 -an -sn -c:v libx264 buffer%d.$extension #use this one
+ffmpeg -i "$input" -acodec copy -f segment -segment_time $segments -vf "scale=${resolution}:trunc(ow/a/2)*2",copy -reset_timestamps 1 -an -sn -c:v libx264 buffer%d.$extension
+#~ ffmpeg -i "$input" -acodec copy -f segment -segment_time $segments -vf "scale=190:trunc(ow/a/2)*2",copy -reset_timestamps 1 -an -sn -c:v libx264 buffer%d.$extension
 
 echo "Done."
 
 echo "Creating mosaic/zoetrope..."
 
 #creating the script
-
 #get width and height of clips
 
-#~ width=$(mediainfo --Inform="Video;%Width%" buffer0.$extension)
-#~ height=$(mediainfo --Inform="Video;%Height%" buffer0.$extension)
 width=$(ffprobe -v error -show_entries stream=width -of default=noprint_wrappers=1:nokey=1 buffer0.$extension)
 height=$(ffprobe -v error -show_entries stream=height -of default=noprint_wrappers=1:nokey=1 buffer0.$extension)
 
@@ -80,9 +83,7 @@ for ((i=0; i<=$tiles_loop; i++));
 				declare -i tmpvar2=$height*$posy;
 				til="${til}[tmp${tmp_count1}][bu${bu_count}] overlay=shortest=1:x=${tmpvar}:y=${tmpvar2} [tmp${tmp_count2}];"
 		fi
-		
-		#~ echo "$posx;$posy"
-		
+				
 	done
 	
 #~ assemble the statement
@@ -95,10 +96,11 @@ output=$(basename "$input")"-zoetrope"
 
 #~ Still trying to find a good quality setting
 
-ffmpeg $inp  -filter_complex "$nullbase$spt$til" -c:v libvpx -qmin 0 -qmax 50 -b:v 2M -an -sn "$output".webm #good settings
+ffmpeg $inp  -filter_complex "$nullbase$spt$til" -c:v libvpx -qmin 0 -qmax 50 -b:v 2M -an -sn -auto-alt-ref 0 "$output".webm #good settings
 #~ ffmpeg $inp  -filter_complex "$nullbase$spt$til" -c:v libvpx  -qmin 5 -qmax 30  -bufsize 1000k -quality best -b:v 2M  -an -sn "$output".webm #best settings
 
 #~ This will come in handy pretty soon (for obvious reasons)
-		#~ rm -rf buffer*
+#~ Remove clips used for the buffer
+		rm -rf buffer*
 
 echo "Done."
